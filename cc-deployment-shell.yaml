@@ -1,0 +1,45 @@
+  apiVersion: apps/v1
+  kind: Deployment
+  metadata:
+    name: container-connect-shell-deployment
+    labels:
+      app: container-connect-shell
+  spec:
+    replicas: 1
+    revisionHistoryLimit: 10
+    strategy:
+      type: RollingUpdate
+      rollingUpdate:
+        maxSurge: 1
+        maxUnavailable: 0
+    selector:
+      matchLabels:
+        app: container-connect-shell
+    template:
+      metadata:
+        labels:
+          app: container-connect-shell
+      spec:
+        containers:
+          - name: aws-cli-container-shell-agent
+            image: amazon/aws-cli
+            volumeMounts:
+              - mountPath: /var/run/secrets/ssm.amazonaws.com/cluster-connect-sa
+                name: aws-iam-token
+                readOnly: true
+            command:
+              - /bin/bash
+              - -c
+              - --
+            args:
+              - while true; do sleep 50; done;
+        serviceAccountName: container-connect-sa
+        volumes:
+          - name: aws-iam-token
+            projected:
+              sources:
+                - serviceAccountToken:
+                    path: token
+                    audience: sts.amazonaws.com
+                    expirationSeconds: 86400
+              defaultMode: 420
